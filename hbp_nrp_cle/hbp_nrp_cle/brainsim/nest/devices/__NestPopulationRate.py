@@ -127,7 +127,7 @@ class NestPopulationRate(AbstractBrainDevice, IPopulationRate):
                      self._cell,
                      conn_spec='all_to_all',
                      syn_spec={'model': 'static_synapse',
-                               'weight': self._weight * 1e6,
+                               'weight': self._weight * 1000,
                                'delay': nest.GetKernelStatus('resolution')})
 
     def _disconnect(self):

@@ -102,7 +102,7 @@ class NestFixedSpikeGenerator(AbstractBrainDevice, IFixedSpikeGenerator):
 
         if current != self._current:
             self._current = current
-            nest.SetStatus(self._currentsource, {'amplitude': value})
+            nest.SetStatus(self._currentsource, {'amplitude': current})
 
     def _activate(self):
         """

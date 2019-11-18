@@ -39,7 +39,7 @@ class NestDCSource(AbstractBrainDevice, IDCSource):
     """
 
     default_parameters = {
-        "amplitude": 1000.0,
+        "amplitude": 0.0,
         "start": 0.0,
         "stop": float("inf")
     }
