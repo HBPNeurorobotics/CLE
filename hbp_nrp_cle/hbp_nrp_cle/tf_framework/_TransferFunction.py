@@ -60,6 +60,7 @@ class TransferFunction(object):
         self._params = []
         self._func = None
         self.__active = False
+        self.__priority = 0
         self.__local_data = {}
         self.__source = None
         self.__elapsed_time = 0.0
@@ -200,6 +201,31 @@ class TransferFunction(object):
         """
         if bool_value is not None and type(bool_value) == bool:
             self.__active = bool_value
+
+    @property
+    def priority(self):
+        """
+        Gets the execution priority of this transfer function
+
+        :return: the execution priority of this transfer function
+
+        """
+
+        return self.__priority
+
+    @priority.setter
+    def priority(self, priority_value):
+        """
+        Sets the execution priority of this transfer function.
+
+        :param priority_value: positive integer denoting the execution priority of this transfer
+        function
+
+        """
+        try:
+            self.__priority = int(priority_value)
+        except (ValueError, TypeError):
+            self.__priority = 0
 
     @abstractmethod
     def __call__(self, func):
@@ -345,6 +371,24 @@ class FlawedTransferFunction(object):
     def active(self, value):
         """
         Since a flawed transfer function can't be active, it doesn't do anything.
+        """
+        pass
+
+    @property
+    def priority(self):
+        """
+        A flawed transfer function can't be executed.
+
+        :return: False
+
+        """
+        return None
+
+    # pylint: disable=no-self-use
+    @priority.setter
+    def priority(self, value):
+        """
+        Since a flawed transfer function can't be executed, it doesn't do anything.
         """
         pass
 
