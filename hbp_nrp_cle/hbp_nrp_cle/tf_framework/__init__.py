@@ -429,13 +429,16 @@ def delete_flawed_transfer_function(name):
     return result
 
 
-def set_transfer_function(new_source, new_code, new_name, activation=True):
+def set_transfer_function(new_source, new_code, new_name, activation=True, priority=None):
     """
     Apply transfer function changes made by a client
 
     :param new_source: Transfer function's updated source
     :param new_code: Compiled code of the updated source
     :param new_name: Transfer function's updated name
+    :param activation: Activation state of the transfer function
+    :param priority: execution order of the transfer function. Transfer functions with higher
+    priority are executed first.
     """
 
     # pylint: disable=broad-except
@@ -457,6 +460,8 @@ def set_transfer_function(new_source, new_code, new_name, activation=True):
     # indeed inspect.getsource is based on a source file object
     # see findsource in http://www.opensource.apple.com/source/python/python-3/python/Lib/inspect.py
     tf.source = new_source
+    if priority is not None:
+        tf.priority = priority
 
 
 def set_flawed_transfer_function(source, name="NO_NAME", error=None):
