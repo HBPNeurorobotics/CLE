@@ -48,14 +48,13 @@ class SpiNNakerSpikeInjector(AbstractBrainDevice, ISpikeInjector):  # pragma no 
         "receptor_type": "excitatory",
         "synapse_type": None,
         "label": None,
-        "n": 3,
         "port": None
     }
 
     def __init__(self, **params):
         super(SpiNNakerSpikeInjector, self).__init__(**params)
         self.__connection = None
-        self.__neuron_ids = list(range(0, self._parameters["n"]))
+        self.__neuron_ids = None
         self.__label = None
 
     def _disconnect(self):
@@ -65,13 +64,18 @@ class SpiNNakerSpikeInjector(AbstractBrainDevice, ISpikeInjector):  # pragma no 
         if self.__connection is not None:
             self.__connection = None
 
-    def inject_spikes(self):
+    # pylint: disable=W0221
+    def inject_spikes(self, neuron_ids=None):
         """
         Injects a spike to the connected population
+
+        :param neuron_ids: The ids of the neurons to inject, or None for all
         """
+        neurons_to_send = neuron_ids
+        if neuron_ids is None:
+            neurons_to_send = self.__neuron_ids
         if self.__connection is not None:
-            self.__connection.send_spikes(self.__label, self.__neuron_ids,
-                                          send_full_keys=True)
+            self.__connection.send_spikes(self.__label, neurons_to_send)
         else:
             logger.warn("Spike could not be injected as spike connection not started, yet")
 
@@ -84,6 +88,7 @@ class SpiNNakerSpikeInjector(AbstractBrainDevice, ISpikeInjector):  # pragma no 
         live_connections.register_sender(
             neurons, self.__started, **self.get_parameters(
                 "source", "receptor_type", "connector", "synapse_type"))
+        self.__neuron_ids = list(range(neurons.size))
 
     def _update_parameters(self, params):
         """

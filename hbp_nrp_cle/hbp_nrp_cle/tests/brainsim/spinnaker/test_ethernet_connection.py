@@ -57,41 +57,21 @@ class TestEthernetControlConnections(unittest.TestCase):
         device2 = Mock()
         reset()
         sim.Population()._get_vertex.get_outgoing_partition_ids.return_value = ["foo", "bar"]
-
         register_devices([device1, device2])
-        sim.external_devices.EthernetControlConnection.assert_called_once_with(translator, None, None)
-        self.assertTrue(sim.external_devices.LivePacketGather.called)
-        sim.external_devices.spynnaker_external_devices.add_application_vertex.assert_called_once_with(
-            sim.external_devices.LivePacketGather.return_value
-        )
+
         translator.register_translation.assert_any_call(device1)
         translator.register_translation.assert_any_call(device2)
         self.assertEqual(1, sim.external_devices.ExternalDeviceLifControl.call_count)
-        sim.Population.assert_any_call(2, sim.external_devices.ExternalDeviceLifControl.return_value)
+        sim.external_devices.EthernetControlPopulation.assert_any_call(2, sim.external_devices.ExternalDeviceLifControl.return_value)
 
         device3 = Mock()
-
         register_devices([device3], foo="bar")
+
         # assert that no other ethernet control connection has been established
-        sim.external_devices.EthernetControlConnection.assert_called_once_with(translator, None, None)
-        self.assertEqual(1, sim.external_devices.LivePacketGather.call_count)
-        sim.external_devices.spynnaker_external_devices.add_application_vertex.assert_called_once_with(
-            sim.external_devices.LivePacketGather.return_value
-        )
         translator.register_translation.assert_any_call(device3)
         self.assertEqual(2, sim.external_devices.ExternalDeviceLifControl.call_count)
-        sim.Population.assert_any_call(1, sim.external_devices.ExternalDeviceLifControl.return_value)
+        sim.external_devices.EthernetControlPopulation.assert_any_call(1, sim.external_devices.ExternalDeviceLifControl.return_value)
 
-        sim.external_devices.spynnaker_external_devices.add_edge.assert_any_call(
-            sim.Population()._get_vertex,
-            sim.external_devices.LivePacketGather(),
-            "foo"
-        )
-        sim.external_devices.spynnaker_external_devices.add_edge.assert_any_call(
-            sim.Population()._get_vertex,
-            sim.external_devices.LivePacketGather(),
-            "bar"
-        )
 
     @patch("hbp_nrp_cle.brainsim.pynn_spiNNaker.__EthernetControlConnection.translator")
     @patch("hbp_nrp_cle.brainsim.pynn_spiNNaker.__EthernetControlConnection.sim")
@@ -101,16 +81,11 @@ class TestEthernetControlConnections(unittest.TestCase):
         sim.Population()._get_vertex.get_outgoing_partition_ids.return_value = ["foo", "bar"]
 
         register_devices([device1])
-        sim.external_devices.EthernetControlConnection.assert_called_once_with(translator, None,
-                                                                               None)
-        self.assertTrue(sim.external_devices.LivePacketGather.called)
-        sim.external_devices.spynnaker_external_devices.add_application_vertex.assert_called_once_with(
-            sim.external_devices.LivePacketGather.return_value
-        )
+        translator.register_translation.assert_called_once_with(device1)
+        sim.external_devices.EthernetControlPopulation.assert_called_once()
 
         shutdown()
         reset()
-
         register_devices([device1])
-        self.assertEqual(2, sim.external_devices.EthernetControlConnection.call_count)
-        self.assertEqual(2, sim.external_devices.LivePacketGather.call_count)
+        self.assertEqual(2, sim.external_devices.EthernetControlPopulation.call_count)
+        self.assertEqual(2, translator.register_translation.call_count)

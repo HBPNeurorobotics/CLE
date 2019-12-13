@@ -24,11 +24,7 @@
 """
 Implementation of PyNNLeakyIntegratorExp
 """
-# pylint: disable=import-error
-#from spynnaker.pyNN.external_devices_models.abstract_multicast_controllable_device import SendType
 import decimal
-
-from enum import Enum
 from hbp_nrp_cle.brainsim.pynn.devices.__PyNNLeakyIntegratorTypes import PyNNLeakyIntegratorExp
 from hbp_nrp_cle.brainsim.pynn_spiNNaker import spynnaker as sim
 from hbp_nrp_cle.brainsim.pynn_spiNNaker.__EthernetControlConnection import register_devices, \
@@ -39,8 +35,11 @@ try:
     # pylint: disable=import-error
     from data_specification.enums import DataType
     from spynnaker.pyNN.external_devices_models import AbstractMulticastControllableDevice
+    from spynnaker.pyNN.external_devices_models.abstract_multicast_controllable_device \
+        import SendType
 except ImportError:  # pragma: no cover
     AbstractMulticastControllableDevice = object
+    from enum import Enum
 
     class DataType(object):
         """A mock of a data type used in case Spinnaker is not installed"""
@@ -52,16 +51,15 @@ except ImportError:  # pragma: no cover
         """A dummy for the get_simulator method in case Spinnaker is not installed"""
         return None
 
-
-class SendType(Enum):
-    """ The data type to be sent in the payload of the multicast packet
-    """
-    SEND_TYPE_INT = 0
-    SEND_TYPE_UINT = 1
-    SEND_TYPE_ACCUM = 2
-    SEND_TYPE_UACCUM = 3
-    SEND_TYPE_FRACT = 4
-    SEND_TYPE_UFRACT = 5
+    class SendType(Enum):
+        """ The data type to be sent in the payload of the multicast packet
+        """
+        SEND_TYPE_INT = 0
+        SEND_TYPE_UINT = 1
+        SEND_TYPE_ACCUM = 2
+        SEND_TYPE_UACCUM = 3
+        SEND_TYPE_FRACT = 4
+        SEND_TYPE_UFRACT = 5
 
 __author__ = 'Georg Hinkel'
 
