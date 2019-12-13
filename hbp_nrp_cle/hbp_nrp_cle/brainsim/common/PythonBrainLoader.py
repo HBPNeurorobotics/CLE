@@ -117,7 +117,6 @@ def setup_access_to_population(brain_module, **populations):
         for p in populations:
             population = populations[p]
             neurons = circuit[population]
-            neurons.label = p
             logger.debug("Population '%s': %s", p, neurons)
             if isinstance(population, slice):
                 expected_size = abs(
@@ -127,6 +126,7 @@ def setup_access_to_population(brain_module, **populations):
             brain_module.__dict__[p] = neurons
             brain_module.populations_keys.append(p)
     except AttributeError:
+        logger.exception("Could not initialize brain simulation")
         if len(populations) > 0:
             raise Exception(
                 "Could not initialize populations, no circuit found")

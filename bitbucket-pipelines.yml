@@ -32,7 +32,12 @@ pipelines:
           - export VIRTUAL_ENV=$VIRTUAL_ENV
           - export NRP_INSTALL_MODE=dev
           - export IGNORE_LINT='platform_venv|hbp_nrp_cle/hbp_nrp_cle/bibi_config/generated|hbp_nrp_cle/.eggs|nest'
-          - virtualenv build_env && . build_env/bin/activate && pip install mock testfixtures && make verify_base || { if [ -f pylint.txt ]; then echo "----------"; echo "PYLINT.TXT"; echo "----------";cat pylint.txt; fi; if [ -f pep8.txt ]; then echo "----------"; echo "PEP8.TXT"; echo "----------";cat pep8.txt; fi; exit 1; }
+
+          # python-tk is needed by matplotlib, which is needed by csa, which is required by spynnaker8
+          # MPLBACKEND tells matplotlib not to use python-tk, so we can install spynnaker later without having python-tk
+          - export MPLBACKEND=agg
+
+          - virtualenv build_env && . build_env/bin/activate && pip install mock testfixtures matplotlib && make verify_base || { if [ -f pylint.txt ]; then echo "----------"; echo "PYLINT.TXT"; echo "----------";cat pylint.txt; fi; if [ -f pep8.txt ]; then echo "----------"; echo "PEP8.TXT"; echo "----------";cat pep8.txt; fi; exit 1; }
 
           # Coverage check
           - $HBP/admin-scripts/nrp_cobertura_check coverage.xml

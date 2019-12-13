@@ -25,10 +25,11 @@
 This module contains an adapted implementation of a neural controller for SpiNNaker
 """
 
+from spinn_front_end_common.utilities.database.database_connection import DatabaseConnection
 from hbp_nrp_cle.brainsim.pynn.PyNNControlAdapter import PyNNControlAdapter, PyNNPopulationInfo
 from hbp_nrp_cle.cle.CLEInterface import BrainRuntimeException
 import logging
-from hbp_nrp_excontrol.logs import clientLogger
+from threading import Thread, Condition
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,9 @@ class PySpiNNakerControlAdapter(PyNNControlAdapter): # pragma no cover
         super(PySpiNNakerControlAdapter, self).__init__(sim)
         sim.Population.all = all_ids
         self._running = False
+        self._ready = False
+        self._exception = None
+        self._ready_sync = Condition()
 
     def initialize(self, **params):
         """
@@ -77,19 +81,48 @@ class PySpiNNakerControlAdapter(PyNNControlAdapter): # pragma no cover
             if len(handler.filters) > 0:
                 handler.removeFilter(handler.filters[-1])
         self._running = False
+        self._ready = False
+
+    def _notify_ready(self):
+        """
+        Notify
+        """
+        with self._ready_sync:
+            self._ready = True
+            self._ready_sync.notify_all()
+
+    def _do_run(self):
+        """
+        Do run
+        """
+        try:
+            self._sim.external_devices.run_forever()
+        # pylint: disable=W0703
+        except Exception as e:
+            logger.exception(e)
+            with self._ready_sync:
+                self._running = False
+                self._ready = False
+                self._exception = e
+                self._ready_sync.notify_all()
 
     def run_step(self, dt):
         if not self._running:
             self._running = True
-            try:
-                clientLogger.advertise("Brain is loaded to the Spinnaker Board."
-                                       "This can take a couple of seconds.")
-                self._sim.external_devices.run_forever()
-                clientLogger.advertise("Brain loading to the Spinnaker Board has been finished.")
-            except Exception as e:
-                self._running = False
-                logger.exception(e)
-                raise BrainRuntimeException(str(e))
+            connection = DatabaseConnection(
+                start_resume_callback_function=self._notify_ready,
+                local_port=None)
+            self._sim.external_devices.add_database_socket_address(
+                database_notify_host=None,
+                database_notify_port_num=connection.local_port,
+                database_ack_port_num=None)
+            runner = Thread(target=self._do_run)
+            runner.start()
+            with self._ready_sync:
+                while not self._ready and self._exception is None:
+                    self._ready_sync.wait()
+            if self._exception is not None:
+                raise BrainRuntimeException(str(self._exception))
 
     def _is_population(self, candidate):
         """
