@@ -7,7 +7,7 @@ h5py==2.6.0
 lazyarray==0.2.9
 neo==0.5.2
 PyNN==0.9.1
-PyYAML==3.11
+PyYAML==5.1
 rospkg==1.0.38
 catkin_pkg==0.2.10
 progressbar2==3.34.0
