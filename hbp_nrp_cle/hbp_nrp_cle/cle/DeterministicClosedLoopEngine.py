@@ -60,6 +60,7 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
                  brain_control_adapter,
                  brain_comm_adapter,
                  transfer_function_manager,
+                 external_module_array,
                  dt
                  ):
         """
@@ -74,10 +75,12 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
         """
         self.rca = robot_control_adapter
         self.rca_future = None
+
         self.rcm = robot_comm_adapter
         self.bca = brain_control_adapter
         self.bcm = brain_comm_adapter
         self.tfm = transfer_function_manager
+        self.ema = external_module_array
         # default timestep
         self.timestep = dt
 
@@ -130,6 +133,7 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
         self.rca.initialize()
         self.bca.initialize()
         self.tfm.initialize('tfnode')
+        self.ema.initialize()
         cle.clock = 0.0
         self.start_time = 0.0
         self.elapsed_time = 0.0
@@ -227,6 +231,8 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
         self.tfm.run_robot_to_neuron(clk)
         self.tfm.run_neuron_to_robot(clk)
 
+        self.ema.run_step()
+
         # update clock
         cle.clock += timestep
 
@@ -243,6 +249,7 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
         self.bcm.shutdown()
         self.rca.shutdown()
         self.bca.shutdown()
+        self.ema.shutdown()
 
     def start(self):
         """
