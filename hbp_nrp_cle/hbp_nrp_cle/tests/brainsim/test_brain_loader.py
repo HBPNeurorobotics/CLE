@@ -66,6 +66,29 @@ class TestClosedLoopEngine(unittest.TestCase):
         self.assertEqual(1, len(first))
         self.assertEqual(2, len(second))
 
+    def test_load_python_network_from_dict(self):
+        """
+        the same test as test_load_python_network, except this time the input brain is a dict.
+        """
+        self.assertEquals(nrp.config.brain_source, None)
+        directory = os.path.split(__file__)[0]
+        filename = os.path.join(directory, 'DummyBrainModelDict.py')
+        BrainLoader.is_brain_safely_imported = Mock(return_value=True)
+        module = BrainLoader.load_py_network(filename)
+
+        circuit = module.circuit
+        self.assertIsInstance(circuit["first"], sim.Population)
+        self.assertEqual(2, len(circuit))
+        self.assertEqual(3, len(circuit["first"]))
+        module.populations_keys = []
+        BrainLoader.setup_access_to_population(module)
+        first = module.label_first
+        second = module.label_first
+        self.assertIsInstance(first, sim.Population)
+        self.assertIsInstance(second, sim.Population)
+        self.assertEqual(3, len(first))
+        self.assertEqual(3, len(second))
+
     def test_load_population_slice_out_of_bounds(self):
         """
         Tests loading a population with a slice out of bounds
