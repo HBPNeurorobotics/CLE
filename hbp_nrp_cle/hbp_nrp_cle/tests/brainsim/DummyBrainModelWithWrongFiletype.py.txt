@@ -22,17 +22,11 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 # ---LICENSE-END
 """
-This is just an example of a neural network
+This is a stupid mini demo brain model. It is not actually loading anything useful
 """
-
-__author__ = 'Georg Hinkel'
 
 import pyNN.nest as sim
 
-population = sim.Population(3, sim.IF_curr_alpha())
-view = population[1:2]
-assembly = population + view
-circuit = {}
+__author__ = 'BjoernJuergens'
 
-# A list of populations is also possible
-list = [population, view, [assembly]]
+circuit = sim.Population(3, sim.EIF_cond_alpha_isfa_ista())
