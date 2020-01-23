@@ -27,8 +27,10 @@ from hbp_nrp_cle.tests.tf_framework.husky import Husky
 
 from hbp_nrp_cle.mocks.robotsim import MockRobotCommunicationAdapter
 from hbp_nrp_cle.mocks.brainsim import MockBrainCommunicationAdapter
+from hbp_nrp_cle.mocks.brainsim.__devices.MockAbstractBrainDevice import MockDeviceGroup
+from hbp_nrp_cle.brainsim.pynn_spiNNaker.devices import PyNNSpiNNakerSpikeRecorder
 import unittest
-from mock import Mock
+from mock import Mock, PropertyMock, patch
 
 __author__ = 'GeorgHinkel'
 
@@ -97,6 +99,26 @@ class NeuronMonitorTests(unittest.TestCase):
 
         my_monitor.unregister()
         self.assertIsNone(my_monitor.device)
+
+    def test_spike_recorder_monitor_for_spinnaker(self):
+        nrp.start_new_tf_manager()
+        self.init_adapters()
+
+        @nrp.NeuronMonitor(nrp.brain.foo, nrp.spike_recorder)
+        def my_spike_monitor(t):
+            return True
+
+        nrp.initialize("test")
+        with patch('hbp_nrp_cle.brainsim.pynn_spiNNaker.devices.PyNNSpiNNakerSpikeRecorder.population_name',
+                   new_callable=PropertyMock) as a:
+            a.return_value = "my_population_name"
+            my_spike_recorder = PyNNSpiNNakerSpikeRecorder()
+            my_spike_monitor.device = MockDeviceGroup(PyNNSpiNNakerSpikeRecorder, [my_spike_recorder])
+            my_spike_monitor.run(43.0)
+            msg = my_spike_monitor.publisher.sent[-1]
+            self.assertEqual(msg.populationLabel, "my_population_name")
+            my_spike_monitor.unregister()
+            self.assertIsNone(my_spike_monitor.device)
 
     def test_leaky_integrator_alpha_monitor(self):
 
