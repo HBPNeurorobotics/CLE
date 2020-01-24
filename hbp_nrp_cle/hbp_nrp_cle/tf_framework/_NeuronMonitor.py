@@ -31,7 +31,7 @@ from ._TransferFunction import TransferFunction
 from ._Neuron2Robot import MapSpikeSink
 from ._Robot2Neuron import MapRobotPublisher
 from ._NeuronSelectors import MapNeuronSelector
-from hbp_nrp_cle.tf_framework import config
+from hbp_nrp_cle.tf_framework import config, TFRunningException
 from hbp_nrp_cle.brainsim.BrainInterface import ISpikeRecorder, ILeakyIntegratorAlpha, \
     ILeakyIntegratorExp, IPopulationRate
 from hbp_nrp_cle.robotsim.RobotInterface import Topic
@@ -229,6 +229,7 @@ class NeuronMonitor(TransferFunction):
                 self.__handler(t)
         except Exception, e:
             self._handle_error(e, sys.exc_info()[2])
+            raise TFRunningException(str(e))
 
     def unregister(self):
         """
