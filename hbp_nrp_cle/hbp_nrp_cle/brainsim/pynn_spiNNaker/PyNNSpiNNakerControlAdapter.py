@@ -29,6 +29,7 @@ from spinn_front_end_common.utilities.database.database_connection import Databa
 from hbp_nrp_cle.brainsim.pynn.PyNNControlAdapter import PyNNControlAdapter, PyNNPopulationInfo
 from hbp_nrp_cle.cle.CLEInterface import BrainRuntimeException
 import logging
+from hbp_nrp_excontrol.logs import clientLogger
 from threading import Thread, Condition
 
 logger = logging.getLogger(__name__)
@@ -97,6 +98,7 @@ class PySpiNNakerControlAdapter(PyNNControlAdapter): # pragma no cover
         """
         try:
             self._sim.external_devices.run_forever()
+
         # pylint: disable=W0703
         except Exception as e:
             logger.exception(e)
@@ -109,6 +111,8 @@ class PySpiNNakerControlAdapter(PyNNControlAdapter): # pragma no cover
     def run_step(self, dt):
         if not self._running:
             self._running = True
+            clientLogger.advertise("Brain is loading to the Spinnaker Board. "
+                                   "This can take a couple of seconds.")
             connection = DatabaseConnection(
                 start_resume_callback_function=self._notify_ready,
                 local_port=None)
@@ -121,6 +125,7 @@ class PySpiNNakerControlAdapter(PyNNControlAdapter): # pragma no cover
             with self._ready_sync:
                 while not self._ready and self._exception is None:
                     self._ready_sync.wait()
+            clientLogger.advertise("Brain loading to the Spinnaker Board has been finished.")
             if self._exception is not None:
                 raise BrainRuntimeException(str(self._exception))
 
