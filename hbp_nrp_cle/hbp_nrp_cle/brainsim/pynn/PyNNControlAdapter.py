@@ -103,9 +103,16 @@ class PyNNControlAdapter(IBrainControlAdapter):
             self.__load_py_brain(brain_file)
 
             # load new populations if any, otherwise reload current ones (if any)
-            pops = populations if populations else tf_config.brain_populations
-            if pops:
-                self.load_populations(**pops)
+            # otherwise initialize empty dict
+            if populations:
+                pops = populations
+            elif tf_config.brain_populations:
+                pops = tf_config.brain_populations
+            else:
+                pops = {}
+
+            self.load_populations(**pops)
+
         else:
             msg = "Neuronal network format {0} not supported".format(extension)
             raise Exception(msg)

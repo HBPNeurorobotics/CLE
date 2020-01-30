@@ -4,9 +4,9 @@ numpy==1.16.5
 scipy==0.17.1
 lxml==3.4.0
 h5py==2.6.0
-lazyarray==0.2.9
+lazyarray==0.3.2
 neo==0.5.2
-PyNN==0.9.1
+PyNN==0.9.4
 PyYAML==3.11
 rospkg==1.0.38
 catkin_pkg==0.2.10
@@ -24,3 +24,4 @@ matplotlib==1.5.1
 nengo==2.8.0
 enum34==1.1.6
 opencv-python
+sPyNNaker8

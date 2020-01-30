@@ -31,12 +31,11 @@ from ._TransferFunction import TransferFunction
 from ._Neuron2Robot import MapSpikeSink
 from ._Robot2Neuron import MapRobotPublisher
 from ._NeuronSelectors import MapNeuronSelector
-from hbp_nrp_cle.tf_framework import config
+from hbp_nrp_cle.tf_framework import config, TFRunningException
 from hbp_nrp_cle.brainsim.BrainInterface import ISpikeRecorder, ILeakyIntegratorAlpha, \
     ILeakyIntegratorExp, IPopulationRate
 from hbp_nrp_cle.robotsim.RobotInterface import Topic
 from cle_ros_msgs.msg import SpikeRate, SpikeEvent, SpikeData
-
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +132,16 @@ class NeuronMonitor(TransferFunction):
         :param t: The simulation time
         :return:
         """
+
+        if hasattr(self.device, 'device_type'):
+            # TODO: Since the import of PyNNSpiNNakerSpikeRecorder does not work, we had to add
+            # a string comparison here in order to check if the device_type of the current device
+            # is a PyNNSpiNNakerSpikeRecorder. This is not a satisfying solution and should be
+            # fixed.
+            if 'PyNNSpiNNakerSpikeRecorder' in str(self.device.device_type):
+                self.__send_spike_recorder_spinnaker(t)
+                return
+
         times = self.device.times
 
         if type(times) is not list:
@@ -172,6 +181,22 @@ class NeuronMonitor(TransferFunction):
             self.publisher.send_message(
                 SpikeEvent(t, self.__count, msgs, self.name, str(population_name)))
 
+    def __send_spike_recorder_spinnaker(self, t):
+        """
+        Sends spike data from the Spinnaker board
+
+        :param t: The simulation time
+        :return:
+        """
+
+        for device in self.device.devices:
+            # Create a message that contains the spike data
+            msgs = [SpikeData(int(spike[0]), spike[1]) for spike in device.times]
+
+            # Send message
+            self.publisher.send_message(
+                SpikeEvent(t, self.__count, msgs, self.name, str(device.population_name)))
+
     def __send_leaky_integrator(self, t):
         """
         Sends spike data to the given leaky integrator monitoring topic
@@ -204,6 +229,7 @@ class NeuronMonitor(TransferFunction):
                 self.__handler(t)
         except Exception, e:
             self._handle_error(e, sys.exc_info()[2])
+            raise TFRunningException(str(e))
 
     def unregister(self):
         """

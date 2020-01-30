@@ -34,10 +34,47 @@ from hbp_nrp_cle.cle.CLEInterface import BrainRuntimeException
 import hbp_nrp_cle.brainsim.config as brainconfig
 from mock import patch, Mock
 
+
 class TestPyNNControlAdapter(unittest.TestCase):
 
     def setUp(self):
         brainconfig.rng_seed = 123456
+
+    def test_load_brain_with_empty_brainconfig(self):
+        sim = Mock()
+        adapter = PyNNControlAdapter(sim)
+        directory = os.path.dirname(__file__)
+        brain_path = os.path.join(directory, "DummyBrainModel.py")
+
+        brainconfig.brain_populations = {}
+        adapter.load_brain(brain_path)
+
+        populations = adapter.get_populations()
+        circuit = next(p for p in populations if p.name == "circuit")
+        self.assertEqual("EIF_cond_alpha_isfa_ista", circuit.celltype)
+
+    def test_load_brain_with_slices(self):
+        sim = Mock()
+        adapter = PyNNControlAdapter(sim)
+        directory = os.path.dirname(__file__)
+        brain_path = os.path.join(directory, "DummyBrainModel.py")
+        population_slices = {'testPopulation1': slice(0, 1, 1),
+                             'testPopulation2': slice(1, 2, 1)}
+        adapter.load_brain(brain_path, **population_slices)
+        populations = adapter.get_populations()
+        population1 = next(p for p in populations if p.name == "testPopulation1")
+        population2 = next(p for p in populations if p.name == "testPopulation2")
+        circuit = next(p for p in populations if p.name == "circuit")
+        self.assertEqual("EIF_cond_alpha_isfa_ista", population1.celltype)
+        self.assertEqual("EIF_cond_alpha_isfa_ista", population2.celltype)
+        self.assertEqual("EIF_cond_alpha_isfa_ista", circuit.celltype)
+
+    def test_invalid_file_extension(self):
+        sim = Mock()
+        adapter = PyNNControlAdapter(sim)
+        directory = os.path.dirname(__file__)
+        with self.assertRaises(Exception):
+            adapter.load_brain(os.path.join(directory, "DummyBrainModelWithWrongFiletype.py.txt"))
 
     def test_populations(self):
         sim = Mock()

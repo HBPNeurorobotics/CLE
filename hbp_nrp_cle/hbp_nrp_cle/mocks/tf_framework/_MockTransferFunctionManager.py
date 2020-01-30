@@ -86,6 +86,16 @@ class MockTransferFunctionManager(ITransferFunctionManager):
         self.__r2nTimes.append(t)
         time.sleep(self.__sleepTime)
 
+    def run_tfs(self, t):
+        """
+        Runs all the transfer functions mocks
+
+        :param t:  The simulation time
+        """
+        self.__r2nTimes.append(t)
+        self.__n2rTimes.append(t)
+        time.sleep(self.__sleepTime)
+
     @property
     def name(self):
         """

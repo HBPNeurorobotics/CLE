@@ -75,8 +75,6 @@ class Translator(AbstractEthernetTranslator):
                         .format(multicast_packet.key))
 
 
-__ethernetConnection = None
-__lpg = None
 __next_key = 1
 translator = Translator()
 
@@ -100,13 +98,9 @@ def reset():
     Resets the ethernet connection
     """
     # pylint: disable=global-statement
-    global __ethernetConnection
-    global __lpg
     global __next_key
 
     __next_key = 1
-    __ethernetConnection = None
-    __lpg = None
     translator.reset()
 
 
@@ -115,8 +109,7 @@ def shutdown():
     Shuts down the ethernet control connection, if any
     :return:
     """
-    if __ethernetConnection is not None:
-        __ethernetConnection.close()
+    pass
 
 
 def register_devices(devices, **params):
@@ -129,31 +122,14 @@ def register_devices(devices, **params):
     """
     # pylint: disable=protected-access
     # pylint: disable=global-statement
-    global __ethernetConnection
-    global __lpg
-    if __lpg is None:
-        __ethernetConnection = sim.external_devices.EthernetControlConnection(
-            translator, None, None
-        )
-        __lpg = sim.external_devices.LivePacketGather(
-            __ethernetConnection.local_ip_address,
-            __ethernetConnection.local_port,
-            message_type=sim.external_devices.EIEIOType.KEY_PAYLOAD_32_BIT,
-            payload_as_time_stamps=False, use_payload_prefix=False
-        )
-        sim.external_devices.spynnaker_external_devices.add_application_vertex(__lpg)
-    for dev in devices:
-        translator.register_translation(dev)
     model = sim.external_devices.ExternalDeviceLifControl(
         devices,
         False,
         translator,
         **params
     )
-    population = sim.Population(len(devices), model)
-    vertex = population._get_vertex
-    for partition_id in vertex.get_outgoing_partition_ids():
-        sim.external_devices.spynnaker_external_devices.add_edge(
-            vertex, __lpg, partition_id
-        )
+    population = sim.external_devices.EthernetControlPopulation(
+        len(devices), model)
+    for dev in devices:
+        translator.register_translation(dev)
     return population

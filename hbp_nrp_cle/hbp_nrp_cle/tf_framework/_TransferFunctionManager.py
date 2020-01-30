@@ -58,6 +58,7 @@ class TransferFunctionManager(ITransferFunctionManager):
         self.__nestAdapter = None
         self.__initialized = False
         self.__global_data = {}
+        self.__tf_priority = lambda tf: tf.priority if tf.priority else 0
 
     @property
     def n2r(self):  # -> list:
@@ -135,6 +136,24 @@ class TransferFunctionManager(ITransferFunctionManager):
                 self.__flawed.append(FlawedTransferFunction(_r2n.name, _r2n.source, tf_exception))
                 self.__r2n.remove(_r2n)
 
+    def run_tfs(self, t):
+        """
+        Runs all the transfer functions in the order specified in bibi file
+
+        :param t:  The simulation time
+        """
+        _tfs = self.transfer_functions(sorted_=True)
+
+        for tf in _tfs:
+            try:
+                TransferFunctionManager.run_tf(tf, t)
+            except TFRunningException as tf_exception:
+                self.__flawed.append(FlawedTransferFunction(tf.name, tf.source, tf_exception))
+                if tf in self.__n2r:
+                    self.__n2r.remove(tf)
+                elif tf in self.__r2n:
+                    self.__r2n.remove(tf)
+
     @property
     def robot_adapter(self):  # -> IRobotCommunicationAdapter:
         """
@@ -188,15 +207,19 @@ class TransferFunctionManager(ITransferFunctionManager):
                 raise Exception("The given object is not a valid brain communication adapter")
             self.__nestAdapter = nest_adapter
 
-    def transfer_functions(self, flawed=False):
+    def transfer_functions(self, flawed=False, sorted_=False):
         """
         Gets a list of transfer functions managed by this instance
 
         :param flawed: if True the list will include also flawed TFs
+        :param sorted_: if True the list is sorted by transfer function priority attribute.
+        Flawed TFs, if any, come last.
         :return: A list of transfer functions
         """
 
         proper_tfs = self.__n2r + self.__r2n + self.__silent
+        if sorted_:
+            proper_tfs.sort(key=self.__tf_priority, reverse=True)
 
         return proper_tfs if not flawed else proper_tfs + self.__flawed
 

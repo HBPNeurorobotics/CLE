@@ -111,22 +111,31 @@ def setup_access_to_population(brain_module, **populations):
     :param brain_module: The brain module
     :param populations: A dictionary of the populations and their ids
     """
+
     try:
         circuit = brain_module.circuit
         logger.debug("Found circuit")
-        for p in populations:
-            population = populations[p]
-            neurons = circuit[population]
-            neurons.label = p
-            logger.debug("Population '%s': %s", p, neurons)
-            if isinstance(population, slice):
-                expected_size = abs(
-                    (population.start - population.stop) / (population.step or 1))
-                if neurons.size != expected_size:
-                    raise Exception("Population '%s' out of bounds" % p)
-            brain_module.__dict__[p] = neurons
-            brain_module.populations_keys.append(p)
+
+        if isinstance(circuit, dict):
+            for neurons in circuit.values():
+                brain_module.__dict__[neurons.label] = neurons
+                brain_module.populations_keys.append(neurons.label)
+
+        else:
+            for p in populations:
+                population = populations[p]
+                neurons = circuit[population]
+                logger.debug("Population '%s': %s", p, neurons)
+                if isinstance(population, slice):
+                    expected_size = abs(
+                        (population.start - population.stop) / (population.step or 1))
+                    if neurons.size != expected_size:
+                        raise Exception("Population '%s' out of bounds" % p)
+                brain_module.__dict__[p] = neurons
+                brain_module.populations_keys.append(p)
+
     except AttributeError:
+        logger.exception("Could not initialize brain simulation")
         if len(populations) > 0:
             raise Exception(
                 "Could not initialize populations, no circuit found")

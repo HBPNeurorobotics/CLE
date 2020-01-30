@@ -117,6 +117,44 @@ def transform_camera(t, camera, camera_device):
         self.assertIn(expected_source_r2n, loaded_source_n2r_and_r2n)
         self.assertEqual(2, len(loaded_source_n2r_and_r2n))
 
+    def test_run_tfs(self):
+        nrp.start_new_tf_manager()
+        brain = MockBrainCommunicationAdapter()
+        robot = MockRobotCommunicationAdapter()
+        config.active_node.brain_adapter = brain
+        config.active_node.robot_adapter = robot
+
+        tf_1 = """@nrp.MapVariable('shared_list', initial_value=[], scope=nrp.GLOBAL)
+@nrp.Neuron2Robot()
+def first_tf(t, shared_list):
+    shared_list.value.append('first_tf')
+"""
+
+        tf_2 = """@nrp.MapVariable('shared_list', initial_value=[], scope=nrp.GLOBAL)    
+@nrp.Neuron2Robot()
+def second_tf(t, shared_list):
+    shared_list.value.append('second_tf')
+"""
+
+        tf_3 = """@nrp.MapVariable('shared_list', initial_value=[], scope=nrp.GLOBAL)
+@nrp.Neuron2Robot()
+def third_tf(t, shared_list):
+    shared_list.value.append('third_tf')
+"""
+        # add the TFs
+        nrp.set_transfer_function(tf_2, tf_2, 'second_tf', activation=True, priority=1)
+        nrp.set_transfer_function(tf_3, tf_3, 'third_tf', activation=True)
+        nrp.set_transfer_function(tf_1, tf_1, 'first_tf', activation=True, priority=2)
+
+        config.active_node.run_tfs(1.0)
+
+        # check that the global variable has been manipulated as expected
+        shared_list = config.active_node.global_data['shared_list']
+
+        self.assertTrue(shared_list[0] == "first_tf")
+        self.assertTrue(shared_list[1] == "second_tf")
+        self.assertTrue(shared_list[2] == "third_tf")
+
     def test_tf_set(self):
         nrp.start_new_tf_manager()
         brain = MockBrainCommunicationAdapter()
@@ -184,6 +222,14 @@ def transform_camera(t, camera, camera_device):
             self.assertIn('invalid syntax', e.message)
             self.assertIn('line 4', e.message)
             self.assertEqual('it_cant_work', e.tf_name)
+
+        nrp.delete_transfer_function('right_arm')
+        nrp.set_transfer_function(tf_n2r, tf_n2r, 'right_arm')
+        tf = nrp.get_transfer_function('right_arm')
+        self.assertTrue(hasattr(tf, 'priority') and tf.priority == 0)
+        nrp.set_transfer_function(tf_n2r, tf_n2r, 'right_arm', priority=1)
+        nrp.set_transfer_function(tf_n2r, tf_n2r, 'right_arm')
+        self.assertTrue(tf.priority == 1)
 
     @patch('hbp_nrp_cle.tf_framework.CSVRecorder.cleanup')
     def test_tf_delete(self, mock_cleanup):
