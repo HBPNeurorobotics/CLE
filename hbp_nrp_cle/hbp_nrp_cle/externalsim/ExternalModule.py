@@ -1,16 +1,13 @@
 """
-ExternalModule.py includes the corresponding CLE class for external ROS modules.
+Includes the corresponding CLE class for external ROS modules.
 """
 
 __author__ = 'Omer Yilmaz'
 
-import os
-import threading
-from multiprocessing import Value
 import logging
 import rospy
 from hbp_nrp_cle.externalsim.AsyncEmaCall import AsyncServiceProxy
-from cle_ros_msgs.srv import Initialize, RunStep, RunStepRequest, Shutdown
+from cle_ros_msgs.srv import Initialize, RunStep, Shutdown
 
 logger = logging.getLogger('hbp_nrp_cle')
 
@@ -31,11 +28,11 @@ class ExternalModule(object):
         rospy.wait_for_service(self.service_name + 'initialize')
         self.initialize_proxy = AsyncServiceProxy(
                 self.service_name + 'initialize', Initialize, persistent=False)
-        
+
         rospy.wait_for_service(self.service_name + 'run_step')
         self.run_step_proxy = AsyncServiceProxy(
                 self.service_name + 'run_step', RunStep, persistent=True)
-        
+
         rospy.wait_for_service(self.service_name + 'shutdown')
         self.shutdown_proxy = AsyncServiceProxy(
                 self.service_name + 'shutdown', Shutdown, persistent=False)

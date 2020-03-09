@@ -6,7 +6,6 @@ mechanism.
 __author__ = 'Omer Yilmaz'
 
 import concurrent.futures
-from multiprocessing import Process, Pool, cpu_count
 import re
 import rosservice
 from hbp_nrp_cle.externalsim.ExternalModule import ExternalModule
@@ -32,12 +31,12 @@ class ExternalModuleManager(object):
 
         self.ema = []
         if len(self.module_names) is not 0:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max(len(self.module_names), 1)) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max(len(self.module_names), 1))\
+                    as executor:
                 future_results = [executor.submit(ExternalModule, x) for x in self.module_names]
                 concurrent.futures.wait(future_results)
                 for future in future_results:
                     self.ema.append(future.result())
-
 
     def initialize(self):
         """
@@ -73,4 +72,3 @@ class ExternalModuleManager(object):
             for future in future_results:
                 while not future.result().done():
                     pass
-

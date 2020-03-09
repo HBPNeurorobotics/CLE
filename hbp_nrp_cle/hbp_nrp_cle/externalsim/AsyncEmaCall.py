@@ -1,9 +1,15 @@
+"""
+This module contains an asynchronous ROS service proxy
+"""
+
 from __future__ import print_function
 
 import rospy
 from concurrent.futures import ThreadPoolExecutor
 
+
 class AsyncServiceProxy(object):
+    """Asynchronous ROS Service Proxy"""
 
     def __init__(self, service_name, service_type, persistent=True,
                  headers=None, callback=None):
