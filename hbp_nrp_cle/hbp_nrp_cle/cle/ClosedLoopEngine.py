@@ -51,6 +51,7 @@ class ClosedLoopEngine(DeterministicClosedLoopEngine):
                  brain_control_adapter,
                  brain_comm_adapter,
                  transfer_function_manager,
+                 external_module_manager,
                  dt):
         """
         Create an instance of the cle.
@@ -64,7 +65,8 @@ class ClosedLoopEngine(DeterministicClosedLoopEngine):
         """
         super(ClosedLoopEngine, self).__init__(robot_control_adapter, robot_comm_adapter,
                                                brain_control_adapter, brain_comm_adapter,
-                                               transfer_function_manager, dt)
+                                               transfer_function_manager, external_module_manager,
+                                               dt)
 
         self.__tf_thread = None
         self.__tf_start_event = threading.Event()

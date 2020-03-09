@@ -30,6 +30,7 @@ from hbp_nrp_cle.cle.ClosedLoopEngine import ClosedLoopEngine
 from hbp_nrp_cle.mocks.robotsim import MockRobotControlAdapter, MockRobotCommunicationAdapter
 from hbp_nrp_cle.mocks.brainsim import MockBrainControlAdapter, MockBrainCommunicationAdapter
 from hbp_nrp_cle.mocks.tf_framework import MockTransferFunctionManager
+from hbp_nrp_cle.externalsim.ExternalModuleManager import ExternalModuleManager
 from geometry_msgs.msg import Point, Pose, Quaternion
 from concurrent.futures import Future
 
@@ -54,6 +55,7 @@ class TestDeterministicClosedLoopEngine(unittest.TestCase):
         bcm = MockBrainCommunicationAdapter()
         self.__tfm = MockTransferFunctionManager()
         self.__tfm.hard_reset_brain_devices = MagicMock()
+        self.__ema = ExternalModuleManager()
 
         # These patches are to avoid timeouts during the GazeboHelper instantiations in the ClosedLoopEngine.
         # They won't be necessary as soon as the ClosedLoopEngine won't embed a GazeboHelper anymore
@@ -61,7 +63,7 @@ class TestDeterministicClosedLoopEngine(unittest.TestCase):
         self.mock_wait_for_service = patch('hbp_nrp_cle.robotsim.GazeboHelper.rospy.wait_for_service').start()
         self.mock_service_proxy = patch('hbp_nrp_cle.robotsim.GazeboHelper.rospy.ServiceProxy').start()
 
-        self.__cle = self.CLE_Class(rca, rcm, self.__bca, bcm, self.__tfm, 0.01)
+        self.__cle = self.CLE_Class(rca, rcm, self.__bca, bcm, self.__tfm, self.__ema, 0.01)
 
     def tearDown(self):
         self.mock_wait_for_service.stop()
