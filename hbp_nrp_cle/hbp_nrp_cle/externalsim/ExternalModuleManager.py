@@ -8,7 +8,6 @@ __author__ = 'Omer Yilmaz'
 import concurrent.futures
 import re
 import rosservice
-import rospy
 from hbp_nrp_cle.externalsim.ExternalModule import ExternalModule
 from hbp_nrp_cle.robotsim.GazeboHelper import TIMEOUT
 
@@ -36,7 +35,8 @@ class ExternalModuleManager(object):
                     module_name = m.group(1)
                     self.module_names.append(module_name)
 
-        self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=max(len(self.module_names), 1))
+        self.thread_pool = concurrent.futures.ThreadPoolExecutor(
+            max_workers=max(len(self.module_names), 1))
 
         self.ema = []
         if self.module_names:
