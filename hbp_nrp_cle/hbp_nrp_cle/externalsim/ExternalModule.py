@@ -65,7 +65,6 @@ class ExternalModule(object):
         with the CLE.
         """
         try:
-            fut = self.shutdown_proxy()
-            return fut
+            return self.shutdown_proxy()
         except rospy.ServiceException as e:
             logger.exception(self.service_name + 'shutdown call failed: %s' % e)
