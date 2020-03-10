@@ -28,14 +28,14 @@ class ExternalModuleManager(object):
                 module_name = m.group(1)
                 self.module_names.append(module_name)
 
+        self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=max(len(self.module_names), 1))
+
         self.ema = []
         if self.module_names:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max(len(self.module_names), 1))\
-                    as executor:
-                future_results = [executor.submit(ExternalModule, x) for x in self.module_names]
-                concurrent.futures.wait(future_results)
-                for future in future_results:
-                    self.ema.append(future.result())
+            future_results = [self.thread_pool.submit(ExternalModule, x) for x in self.module_names]
+            concurrent.futures.wait(future_results)
+            for future in future_results:
+                self.ema.append(future.result())
 
     def exec_module_call(self, function):
         """
@@ -43,12 +43,11 @@ class ExternalModuleManager(object):
         :param function: Function to execute on every module
         """
         if self.module_names:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=len(self.ema)) as executor:
-                future_results = [executor.submit(function, x) for x in self.ema]
-                concurrent.futures.wait(future_results)
-                for future in future_results:
-                    while not future.result().done():
-                        pass
+            future_results = [self.thread_pool.submit(function, x) for x in self.ema]
+            concurrent.futures.wait(future_results)
+            for future in future_results:
+                while not future.result().done():
+                    pass
 
     def initialize(self):
         """
