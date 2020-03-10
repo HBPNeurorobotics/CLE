@@ -60,7 +60,7 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
                  brain_control_adapter,
                  brain_comm_adapter,
                  transfer_function_manager,
-                 external_module_array,
+                 external_module_manager,
                  dt
                  ):
         """
@@ -80,7 +80,7 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
         self.bca = brain_control_adapter
         self.bcm = brain_comm_adapter
         self.tfm = transfer_function_manager
-        self.ema = external_module_array
+        self.ema = external_module_manager
         # default timestep
         self.timestep = dt
 
