@@ -8,7 +8,9 @@ __author__ = 'Omer Yilmaz'
 import concurrent.futures
 import re
 import rosservice
+import rospy
 from hbp_nrp_cle.externalsim.ExternalModule import ExternalModule
+from hbp_nrp_cle.robotsim.GazeboHelper import TIMEOUT
 
 class ExternalModuleManager(object):
     """
@@ -33,7 +35,12 @@ class ExternalModuleManager(object):
         self.ema = []
         if self.module_names:
             future_results = [self.thread_pool.submit(ExternalModule, x) for x in self.module_names]
-            concurrent.futures.wait(future_results)
+
+            # Wait for modules, raise exception if module does not respond within given timeframe
+            status = concurrent.futures.wait(future_results, timeout=TIMEOUT)
+            if status.not_done:
+                raise Exception("Could not start all modules")
+
             for future in future_results:
                 self.ema.append(future.result())
 
