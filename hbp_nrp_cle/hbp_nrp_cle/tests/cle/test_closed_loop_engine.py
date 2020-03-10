@@ -46,7 +46,6 @@ class TestDeterministicClosedLoopEngine(unittest.TestCase):
 
     def setUp(self):
         # Sets up the cle and the mocks for the adapters.
-
         rca = MockRobotControlAdapter()
         rcm = MockRobotCommunicationAdapter()
         self.__bca = MockBrainControlAdapter()
@@ -55,7 +54,7 @@ class TestDeterministicClosedLoopEngine(unittest.TestCase):
         bcm = MockBrainCommunicationAdapter()
         self.__tfm = MockTransferFunctionManager()
         self.__tfm.hard_reset_brain_devices = MagicMock()
-        self.__ema = ExternalModuleManager()
+        self.__ema = ExternalModuleManager([])
 
         # These patches are to avoid timeouts during the GazeboHelper instantiations in the ClosedLoopEngine.
         # They won't be necessary as soon as the ClosedLoopEngine won't embed a GazeboHelper anymore

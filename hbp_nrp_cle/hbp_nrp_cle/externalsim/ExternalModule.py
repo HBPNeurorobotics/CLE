@@ -44,7 +44,7 @@ class ExternalModule(object):
         with the CLE.
         """
         try:
-            self.response = self.initialize_proxy()
+            self.response = self.initialize_proxy.call()
             return self.response
         except rospy.ServiceException as e:
             logger.exception(self.service_name + 'initialize call failed: %s' % e)
@@ -55,7 +55,7 @@ class ExternalModule(object):
         with the CLE.
         """
         try:
-            return self.run_step_proxy()
+            return self.run_step_proxy.call()
         except rospy.ServiceException as e:
             logger.exception(self.service_name + 'run_step call failed: %s' % e)
 
@@ -65,6 +65,6 @@ class ExternalModule(object):
         with the CLE.
         """
         try:
-            return self.shutdown_proxy()
+            return self.shutdown_proxy.call()
         except rospy.ServiceException as e:
             logger.exception(self.service_name + 'shutdown call failed: %s' % e)

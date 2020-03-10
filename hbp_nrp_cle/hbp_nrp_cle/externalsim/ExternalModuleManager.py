@@ -12,6 +12,7 @@ import rospy
 from hbp_nrp_cle.externalsim.ExternalModule import ExternalModule
 from hbp_nrp_cle.robotsim.GazeboHelper import TIMEOUT
 
+
 class ExternalModuleManager(object):
     """
     This class automatically detects the external modules searching the ROS
@@ -22,13 +23,18 @@ class ExternalModuleManager(object):
     on the array also synchronized.
     """
 
-    def __init__(self):
-        self.module_names = []
-        for service in rosservice.get_service_list():
-            m = re.match(r"/emi/(\w+)_module/initialize", str(service))
-            if m:
-                module_name = m.group(1)
-                self.module_names.append(module_name)
+    def __init__(self, module_names=None):
+
+        if module_names is not None:
+            self.module_names = module_names
+        else:
+            # If no module_names were provided, check which modules are advertising their services
+            self.module_names = []
+            for service in rosservice.get_service_list():
+                m = re.match(r"/emi/(\w+)_module/initialize", str(service))
+                if m:
+                    module_name = m.group(1)
+                    self.module_names.append(module_name)
 
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=max(len(self.module_names), 1))
 
@@ -44,7 +50,7 @@ class ExternalModuleManager(object):
             for future in future_results:
                 self.ema.append(future.result())
 
-    def exec_module_call(self, function):
+    def _exec_module_call(self, function):
         """
         Creates a thread for every module and executes the requested function in it
         :param function: Function to execute on every module
@@ -60,16 +66,16 @@ class ExternalModuleManager(object):
         """
         This method is used to run all initialize methods served at each external models at once.
         """
-        self.exec_module_call(ExternalModule.initialize)
+        self._exec_module_call(ExternalModule.initialize)
 
     def run_step(self):
         """
         This method is used to run all run_step methods served at each external models at once.
         """
-        self.exec_module_call(ExternalModule.run_step)
+        self._exec_module_call(ExternalModule.run_step)
 
     def shutdown(self):
         """
         This method is used to run all shutdown methods served at each external models at once.
         """
-        self.exec_module_call(ExternalModule.shutdown)
+        self._exec_module_call(ExternalModule.shutdown)
