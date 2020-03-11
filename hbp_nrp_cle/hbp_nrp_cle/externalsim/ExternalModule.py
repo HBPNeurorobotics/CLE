@@ -7,7 +7,7 @@ __author__ = 'Omer Yilmaz'
 import logging
 import rospy
 from hbp_nrp_cle.robotsim.AsynchronousServiceProxy import AsynchonousRospyServiceProxy
-from cle_ros_msgs.srv import Initialize, RunStep, Shutdown
+from iba_manager.srv import Initialize, RunStep, Shutdown
 from hbp_nrp_cle.robotsim.GazeboHelper import TIMEOUT
 
 logger = logging.getLogger('hbp_nrp_cle')
