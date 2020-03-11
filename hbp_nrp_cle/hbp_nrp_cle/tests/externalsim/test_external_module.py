@@ -25,21 +25,12 @@
 ExternalModule unit test
 """
 
-from hbp_nrp_cle.robotsim.AsynchronousServiceProxy import AsynchonousRospyServiceProxy
-from cle_ros_msgs.srv import Initialize, RunStep, Shutdown
+import rospy
+from iba_manager.srv import Initialize, RunStep, Shutdown
 from hbp_nrp_cle.externalsim.ExternalModule import ExternalModule
 
 import unittest
 from mock import patch
-
-
-class MockSimpleFuture:
-    """Very simple future mock. Only returns True for done() function"""
-    def __init__(self):
-        pass
-
-    def done(self):
-        return True
 
 
 # all the methods are inherited from unittest.TestCase
@@ -47,7 +38,7 @@ class TestExternalModule(unittest.TestCase):
 
     def setUp(self):  # -> None
         self.mock_wait_for_service = patch('hbp_nrp_cle.externalsim.ExternalModule.rospy.wait_for_service').start()
-        self.mock_service_proxy = patch('hbp_nrp_cle.robotsim.AsynchronousServiceProxy.ServiceProxy').start()
+        self.mock_service_proxy = patch('rospy.ServiceProxy').start()
 
         self._module_name = "module"
         self._em = ExternalModule(self._module_name)
@@ -71,24 +62,18 @@ class TestExternalModule(unittest.TestCase):
 
     def test_initialize_call(self):
         # Check that each module's initialize function was called
-        with patch.object(AsynchonousRospyServiceProxy, 'call',
-                          return_value=MockSimpleFuture()) as call_method:
-            self._em.initialize()
-            self.assertEquals(call_method.call_count, 1)
+        self._em.initialize()
+        self.mock_service_proxy.call.assert_called_once()
 
     def test_run_step_call(self):
         # Check that each module's run_step function was called
-        with patch.object(AsynchonousRospyServiceProxy, 'call',
-                          return_value=MockSimpleFuture()) as call_method:
-            self._em.run_step()
-            self.assertEquals(call_method.call_count, 1)
+        self._em.run_step()
+        self.mock_service_proxy.call.assert_called_once()
 
     def test_shutdown_call(self):
         # Check that each module's shutdown function was called
-        with patch.object(AsynchonousRospyServiceProxy, 'call',
-                          return_value=MockSimpleFuture()) as call_method:
-            self._em.shutdown()
-            self.assertEquals(call_method.call_count, 1)
+        self._em.shutdown()
+        self.mock_service_proxy.call.assert_called_once()
 
 
 if __name__ == '__main__':
