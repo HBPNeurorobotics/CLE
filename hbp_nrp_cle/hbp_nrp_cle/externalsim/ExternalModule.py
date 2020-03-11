@@ -6,7 +6,6 @@ __author__ = 'Omer Yilmaz'
 
 import logging
 import rospy
-from hbp_nrp_cle.robotsim.AsynchronousServiceProxy import AsynchonousRospyServiceProxy
 from iba_manager.srv import Initialize, RunStep, Shutdown
 from hbp_nrp_cle.robotsim.GazeboHelper import TIMEOUT
 
@@ -27,16 +26,16 @@ class ExternalModule(object):
         self.response = None
 
         rospy.wait_for_service(self.service_name + 'initialize', timeout=TIMEOUT)
-        self.initialize_proxy = AsynchonousRospyServiceProxy(
-                self.service_name + 'initialize', Initialize, persistent=False)
+        self.initialize_proxy = rospy.ServiceProxy(
+                self.service_name + 'initialize', Initialize)
 
         rospy.wait_for_service(self.service_name + 'run_step', timeout=TIMEOUT)
-        self.run_step_proxy = AsynchonousRospyServiceProxy(
-                self.service_name + 'run_step', RunStep, persistent=True)
+        self.run_step_proxy = rospy.ServiceProxy(
+                self.service_name + 'run_step', RunStep)
 
         rospy.wait_for_service(self.service_name + 'shutdown', timeout=TIMEOUT)
-        self.shutdown_proxy = AsynchonousRospyServiceProxy(
-                self.service_name + 'shutdown', Shutdown, persistent=False)
+        self.shutdown_proxy = rospy.ServiceProxy(
+                self.service_name + 'shutdown', Shutdown)
 
     def initialize(self):
         """

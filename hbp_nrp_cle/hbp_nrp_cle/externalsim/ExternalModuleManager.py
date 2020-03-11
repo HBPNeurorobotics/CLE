@@ -59,7 +59,7 @@ class ExternalModuleManager(object):
             future_results = [self.thread_pool.submit(function, x) for x in self.ema]
             concurrent.futures.wait(future_results)
             for future in future_results:
-                while not future.result().done():
+                while not future.done():
                     pass
 
     def initialize(self):
