@@ -70,6 +70,21 @@ class Neuron2RobotTests(unittest.TestCase):
 
         self.assertIsInstance(tf_publisher_no_decorator, nrp.Neuron2Robot)
 
+    def test_unavailable_service_name_fails(self):
+        tf_manager = nrp.start_new_tf_manager()
+
+        # This test checks if the initialization fails as expected, because the given service name is invalid
+
+        @nrp.MapRobotServiceProxy("name", "unavailable_service_name", None)
+        @nrp.Neuron2Robot()
+        def test_tf(t, name):
+            name.create_adapter(tf_manager)
+            return t
+
+        self.init_adapters()
+
+        self.assertRaises(Exception, nrp.initialize)
+
     def init_adapters(self):
         brain = MockBrainCommunicationAdapter()
         robot = MockRobotCommunicationAdapter()

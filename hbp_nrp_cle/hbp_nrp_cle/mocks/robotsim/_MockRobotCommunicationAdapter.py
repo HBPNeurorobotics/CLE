@@ -27,6 +27,7 @@ The mock implementation of the communication adapter to the world simulation
 
 from hbp_nrp_cle.robotsim.RobotInterface import IRobotCommunicationAdapter, IRobotPublishedTopic, \
     IRobotSubscribedTopic
+from hbp_nrp_cle.tests.mocks.robotsim.test_mock_ros_communicationadapter import MockRosServiceProxy
 
 __author__ = 'GeorgHinkel'
 
@@ -105,6 +106,16 @@ class MockRobotCommunicationAdapter(IRobotCommunicationAdapter):
         :return: A subscription object
         """
         return MockSubscribedTopic()
+
+    def create_service_proxy(self, service, **config):
+        """
+        Creates the subscription object for the given service
+
+        :param service: The service
+        :param config: Additional configuration for the ServiceProxy
+        :return: A service proxy object
+        """
+        return MockRosServiceProxy()
 
     def refresh_buffers(self, t):
         """

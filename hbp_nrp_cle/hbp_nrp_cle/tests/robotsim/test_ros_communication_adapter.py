@@ -27,10 +27,12 @@ Tests the ROS communication adapter
 
 import unittest
 import rospy
+import rosservice
 from mock import patch, Mock
-from hbp_nrp_cle.robotsim.RobotInterface import PreprocessedTopic, Topic
+from hbp_nrp_cle.robotsim.RobotInterface import PreprocessedTopic, Topic, Service
 from hbp_nrp_cle.robotsim.RosCommunicationAdapter import RosCommunicationAdapter, RosPublishedPreprocessedTopic, \
-    RosPublishedTopic, RosSubscribedPreprocessedTopic, RosSubscribedTopic
+    RosPublishedTopic, RosSubscribedPreprocessedTopic, RosSubscribedTopic, RosServiceProxy
+from hbp_nrp_cle.tests.mocks.robotsim.test_mock_ros_communicationadapter import MockRosServiceProxy
 import hbp_nrp_cle.robotsim.RosCommunicationAdapter as tested_module
 from testfixtures import LogCapture
 from rosgraph_msgs.msg import Log
@@ -282,6 +284,46 @@ class TestTopicImplementations(unittest.TestCase):
         self.assertTrue(rst.changed)
         self.assertEquals(rst.value, 'data')
         self.assertEquals(mock_rospy_subscriber.call_count, 1)
+
+
+class TestServiceImplementation(unittest.TestCase):
+
+    # Tests for RosServiceProxy
+    @patch('rospy.ServiceProxy')
+    @patch.object(rosservice, 'get_service_list', return_value=['service_name'])
+    def test_rsp_init(self, mock_service_list, mock_rospy_service):
+        RosServiceProxy(Service('service_name', 'service_type'))
+        self.assertEquals(mock_service_list.call_count, 1)
+
+        self.assertEquals(mock_rospy_service.call_count, 1)
+        self.assertEquals(mock_rospy_service.call_args_list[0][0][0], 'service_name')
+        self.assertEquals(mock_rospy_service.call_args_list[0][0][1], 'service_type')
+        self.assertRaises(AssertionError, RosServiceProxy, None, None)
+
+    @patch('rospy.ServiceProxy')
+    @patch.object(rosservice, 'get_service_list', return_value=['service_name'])
+    def test_rsp_send_request(self, mock_service_list, mock_rospy_service):
+        rsp = MockRosServiceProxy(Service('service_name', 'service_type'), mock_service=mock_rospy_service)
+
+        rsp.set_request_args('args', kwargs='kwargs')
+        rsp.update_value()
+        mock_rospy_service.call.assert_called_with('args', kwargs='kwargs')
+
+    @patch('rospy.ServiceProxy')
+    @patch.object(rosservice, 'get_service_list', return_value=['service_name'])
+    def test_rsp_reset(self, mock_service_list, mock_rospy_service):
+        rsp = MockRosServiceProxy(Service('service_name', 'service_type'), initial_response=True,
+                                  mock_service=mock_rospy_service)
+
+        rsp.reset(None)
+        self.assertEquals(rsp.value, None)
+
+    @patch('hbp_nrp_cle.robotsim.RosCommunicationAdapter.rospy.ServiceProxy')
+    @patch.object(rosservice, 'get_service_list', return_value=['service_name'])
+    def test_rsp_unregister(self, mock_service_list, mock_rospy_service):
+        rsp = MockRosServiceProxy(Service('service_name', 'service_type'), mock_service=mock_rospy_service)
+        rsp._unregister()
+        self.assertEquals(rsp.service_proxy, None)
 
 
 if __name__ == '__main__':

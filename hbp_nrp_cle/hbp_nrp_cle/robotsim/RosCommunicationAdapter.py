@@ -27,10 +27,12 @@ using ROS
 """
 
 from hbp_nrp_cle.robotsim.RobotInterface import IRobotCommunicationAdapter, \
-    Topic, PreprocessedTopic, IRobotSubscribedTopic, IRobotPublishedTopic
+    Topic, PreprocessedTopic, IRobotSubscribedTopic, IRobotPublishedTopic, \
+    Service, IRobotServiceProxy
 from hbp_nrp_cle.tf_framework._TransferFunctionManager import TransferFunctionManager
 import rosgraph_msgs.msg
 import rospy
+import rosservice
 import logging
 import rosgraph.masterapi as master
 
@@ -167,6 +169,17 @@ class RosCommunicationAdapter(IRobotCommunicationAdapter):
         return RosSubscribedTopic(topic,
                                   config.get('initial_value', None),
                                   **config)
+
+    def create_service_proxy(self, service, **config):
+        """
+        Creates a service proxy object for the given service
+
+        :param service: The service
+        :param config: Additional configuration for the service proxy
+
+        :return: A service proxy object
+        """
+        return RosServiceProxy(service, **config)
 
     @property
     def is_alive(self):  # pylint: disable=R0201
@@ -380,3 +393,88 @@ class RosSubscribedPreprocessedTopic(RosSubscribedTopic):
         """
         pre_processed = self.__pre_processor(data)
         super(RosSubscribedPreprocessedTopic, self)._callback(pre_processed)
+
+
+class RosServiceProxy(IRobotServiceProxy):
+    """
+    Represents a robot service proxy actually using ROS
+    """
+    def __init__(self, service, initial_response=None, persistent=False, headers=None):
+        """
+        Initializes a new service proxy for the given service
+
+        :param service: The service that is requested
+        :param initial_response: The initial value of the service proxy response
+        :param persistent: Persistence of Service.
+        Look at rospy.ServiceProxy documentation for details
+        :param headers: Service headers.
+        Look at rospy.ServiceProxy documentation for details
+        """
+        self.__response_value = initial_response
+        self.__request_args = []
+        self.__request_kwargs = {}
+
+        assert isinstance(service, Service)
+
+        services = rosservice.get_service_list()
+        if service.name not in services:
+            raise Exception("Service {} not available", service.name)
+
+        self.__service_proxy = rospy.ServiceProxy(service.name, service.service_type,
+                                                  persistent=persistent, headers=headers)
+        logger.info("ROS service responder created: service name = %s, service type = %s",
+                    service.name, service.service_type)
+
+    def __call__(self, *args, **kwargs):
+        """Calling the RosServiceProxy returns the service response"""
+        if args or kwargs:
+            self.set_request_args(*args, **kwargs)
+
+        return self.update_value()
+
+    def set_request_args(self, *args, **kwargs):
+        """
+        Update service proxy request arguments
+        """
+        self.__request_args = args
+        self.__request_kwargs = kwargs
+
+    def update_value(self, *args, **kwargs):
+        """
+        Update service response value
+        :return Returns Service Response
+        """
+        if args or kwargs:
+            self.set_request_args(*args, **kwargs)
+
+        if self.__service_proxy is not None:
+            self.__response_value = \
+                self.__service_proxy.call(*self.__request_args, **self.__request_kwargs)
+            return self.__response_value
+        else:
+            logger.error("Trying to send request on an unavailable service")
+
+    @property
+    def value(self):
+        """
+        Gets the last value received by this ROS subscribed service
+        """
+        return self.__response_value
+
+    def reset(self, transfer_function_manager):
+        """
+        Gets a reset subscriber
+
+        :param transfer_function_manager: The transfer function manager in which the subscribed
+         service is contained
+        """
+        self.__response_value = None
+        return self
+
+    def _unregister(self):
+        """
+        Detaches the service
+        """
+        if self.__service_proxy is not None:
+            self.__service_proxy.close()
+            self.__service_proxy = None
