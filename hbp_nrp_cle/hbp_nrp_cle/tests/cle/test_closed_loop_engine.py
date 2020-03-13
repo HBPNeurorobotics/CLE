@@ -26,12 +26,18 @@ CLE unit test
 """
 
 from hbp_nrp_cle.cle.DeterministicClosedLoopEngine import DeterministicClosedLoopEngine
+from hbp_nrp_cle.cle.DeterministicClosedLoopEngineProfiler import \
+    DeterministicClosedLoopEngineProfiler
 from hbp_nrp_cle.cle.ClosedLoopEngine import ClosedLoopEngine
 from hbp_nrp_cle.mocks.robotsim import MockRobotControlAdapter, MockRobotCommunicationAdapter
 from hbp_nrp_cle.mocks.brainsim import MockBrainControlAdapter, MockBrainCommunicationAdapter
 from hbp_nrp_cle.mocks.tf_framework import MockTransferFunctionManager
 from geometry_msgs.msg import Point, Pose, Quaternion
 from concurrent.futures import Future
+from cle_ros_msgs import srv
+import os
+from hbp_nrp_cle.tf_framework import CSVRecorder
+from hbp_nrp_cle.brainsim.pynn_nest.PyNNNestCommunicationAdapter import PyNNNestCommunicationAdapter
 
 import unittest
 import time
@@ -209,6 +215,118 @@ class TestClosedLoopEngine(TestDeterministicClosedLoopEngine):
     def setUp(self):
         with patch("hbp_nrp_cle.cle.ClosedLoopEngine.threading"):
             super(TestClosedLoopEngine, self).setUp()
+
+
+class TestDeterministicClosedLoopEngineProfiler(unittest.TestCase):
+
+    def setUp(self):
+        # Sets up the cle and the mocks for the adapters.
+
+        rca = MockRobotControlAdapter()
+        rcm = MockRobotCommunicationAdapter()
+        bca = MockBrainControlAdapter()
+        bca.load_brain = MagicMock()
+        bca.load_populations = MagicMock()
+        bcm = MockBrainCommunicationAdapter()
+        tfm = MockTransferFunctionManager()
+        tfm.hard_reset_brain_devices = MagicMock()
+
+        # These patches are to avoid timeouts during the GazeboHelper instantiations in the ClosedLoopEngine.
+        # They won't be necessary as soon as the ClosedLoopEngine won't embed a GazeboHelper anymore
+        # (see related comments there)
+        self.mock_wait_for_service = patch(
+            'hbp_nrp_cle.robotsim.GazeboHelper.rospy.wait_for_service').start()
+        self.mock_service_proxy = patch(
+            'hbp_nrp_cle.robotsim.GazeboHelper.rospy.ServiceProxy').start()
+
+        self.__cle_params = [rca, rcm, bca, bcm, tfm, 0.01]
+
+        # Directory to save profiler data
+        os.makedirs('data_dir')
+
+    def tearDown(self):
+        self.mock_wait_for_service.stop()
+        self.mock_service_proxy.stop()
+
+        for f in os.listdir('data_dir'):
+            os.remove(os.path.join('data_dir', f))
+        os.rmdir('data_dir')
+
+    def test_init_profiler_mode(self):
+        # good cases
+        cle_p = DeterministicClosedLoopEngineProfiler(
+            *self.__cle_params, profiler_mode=srv.CreateNewSimulationRequest.PROFILER_CLE_STEP,
+            profiler_dir='data_dir')
+        self.assertEqual(cle_p._profiler_mode, srv.CreateNewSimulationRequest.PROFILER_CLE_STEP)
+
+        cle_p = DeterministicClosedLoopEngineProfiler(
+            *self.__cle_params, profiler_mode=srv.CreateNewSimulationRequest.PROFILER_CPROFILE,
+            profiler_dir='data_dir')
+        self.assertEqual(cle_p._profiler_mode, srv.CreateNewSimulationRequest.PROFILER_CPROFILE)
+
+        # bad cases
+        cle_p = DeterministicClosedLoopEngineProfiler(
+            *self.__cle_params, profiler_mode=srv.CreateNewSimulationRequest.PROFILER_CPROFILE,
+            profiler_dir='fake_dir')
+        self.assertEqual(cle_p._profiler_mode, srv.CreateNewSimulationRequest.PROFILER_DISABLED)
+
+        cle_p = DeterministicClosedLoopEngineProfiler(
+            *self.__cle_params, profiler_mode=srv.CreateNewSimulationRequest.PROFILER_CLE_STEP,
+            profiler_dir='fake_dir')
+        self.assertEqual(cle_p._profiler_mode, srv.CreateNewSimulationRequest.PROFILER_DISABLED)
+
+        cle_p = DeterministicClosedLoopEngineProfiler(
+            *self.__cle_params, profiler_mode='this mode does not exist')
+        self.assertEqual(cle_p._profiler_mode, srv.CreateNewSimulationRequest.PROFILER_DISABLED)
+
+    def test_load_brain(self):
+        # disabled
+        cle_p = DeterministicClosedLoopEngineProfiler(
+            *self.__cle_params, profiler_mode=srv.CreateNewSimulationRequest.PROFILER_DISABLED)
+        cle_p.load_brain("brain.py")
+        self.assertEqual(len(cle_p._csv_recorders), 0)
+        # cprofile
+        cle_p = DeterministicClosedLoopEngineProfiler(
+            *self.__cle_params, profiler_mode=srv.CreateNewSimulationRequest.PROFILER_CPROFILE)
+        cle_p.load_brain("brain.py")
+        self.assertEqual(len(cle_p._csv_recorders), 0)
+        # cle_step. bcm type unsupported for logging: MockBrainCommunicationAdapter
+        cle_p = DeterministicClosedLoopEngineProfiler(
+            *self.__cle_params, profiler_mode=srv.CreateNewSimulationRequest.PROFILER_CLE_STEP,
+            profiler_dir='data_dir')
+        cle_p.load_brain("brain.py")
+        self.assertEqual(len(cle_p._csv_recorders), 1)
+        self.assertEqual(cle_p._brain_sim_csv_recorder, None)
+        self.assertIsInstance(cle_p._cle_csv_recorder, CSVRecorder)
+        # cle_step. cm type supported for logging: PyNNNestCommunicationAdapter
+        cle_p = DeterministicClosedLoopEngineProfiler(
+            *self.__cle_params, profiler_mode=srv.CreateNewSimulationRequest.PROFILER_CLE_STEP,
+            profiler_dir='data_dir')
+        cle_p.bcm = PyNNNestCommunicationAdapter()
+        cle_p.load_brain("brain.py")
+        self.assertEqual(len(cle_p._csv_recorders), 2)
+        self.assertIsInstance(cle_p._brain_sim_csv_recorder, CSVRecorder)
+        self.assertIsInstance(cle_p._cle_csv_recorder, CSVRecorder)
+
+    def test_run_step(self):
+        # cle_step
+        cle_p = DeterministicClosedLoopEngineProfiler(
+            *self.__cle_params, profiler_mode=srv.CreateNewSimulationRequest.PROFILER_CLE_STEP,
+            profiler_dir='data_dir')
+        cle_p.initialize("brain.py")
+        cle_p._cle_csv_recorder.record_entry = Mock()
+        cle_p.run_step(cle_p.timestep)
+        self.assertEqual(cle_p._cle_csv_recorder.record_entry.call_count, 1)
+
+    def test_shutdown(self):
+        # csv records are dumped to folder
+        cle_p = DeterministicClosedLoopEngineProfiler(
+            *self.__cle_params, profiler_mode=srv.CreateNewSimulationRequest.PROFILER_CLE_STEP,
+            profiler_dir='data_dir')
+        cle_p.bcm = PyNNNestCommunicationAdapter()
+        cle_p.initialize("brain.py")
+        cle_p.shutdown()
+        self.assertEqual(len(list(os.listdir('data_dir'))),2)
 
 
 if __name__ == '__main__':
