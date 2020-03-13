@@ -133,6 +133,7 @@ class DeterministicClosedLoopEngineProfiler(DeterministicClosedLoopEngine):
                  brain_control_adapter,
                  brain_comm_adapter,
                  transfer_function_manager,
+                 external_simulation_manager,
                  dt,
                  profiler_mode=srv.CreateNewSimulationRequest.PROFILER_DISABLED,
                  profiler_dir=''
@@ -146,6 +147,7 @@ class DeterministicClosedLoopEngineProfiler(DeterministicClosedLoopEngine):
         :param brain_control_adapter: an instance of IBrainContolAdapter
         :param brain_comm_adapter: an instance of IBrainCommunicationAdapter
         :param transfer_function_manager: an instance of ITransferFunctionManager
+        :param external_simulation_manager: an instance of ExternalSimulationManager
         :param dt: The CLE time step in seconds
         :param profiler_mode: specifies the profiler mode: disabled, cle_step, cprofile
         :param profiler_dir: path to the folder where cProfile output files will be saved to
@@ -157,6 +159,7 @@ class DeterministicClosedLoopEngineProfiler(DeterministicClosedLoopEngine):
             brain_control_adapter,
             brain_comm_adapter,
             transfer_function_manager,
+            external_simulation_manager,
             dt)
 
         self._profiler_mode = profiler_mode

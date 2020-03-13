@@ -231,6 +231,7 @@ class TestDeterministicClosedLoopEngineProfiler(unittest.TestCase):
         bcm = MockBrainCommunicationAdapter()
         tfm = MockTransferFunctionManager()
         tfm.hard_reset_brain_devices = MagicMock()
+        ema = ExternalModuleManager([])
 
         # These patches are to avoid timeouts during the GazeboHelper instantiations in the ClosedLoopEngine.
         # They won't be necessary as soon as the ClosedLoopEngine won't embed a GazeboHelper anymore
@@ -240,7 +241,7 @@ class TestDeterministicClosedLoopEngineProfiler(unittest.TestCase):
         self.mock_service_proxy = patch(
             'hbp_nrp_cle.robotsim.GazeboHelper.rospy.ServiceProxy').start()
 
-        self.__cle_params = [rca, rcm, bca, bcm, tfm, 0.01]
+        self.__cle_params = [rca, rcm, bca, bcm, tfm, ema, 0.01]
 
         # Directory to save profiler data
         os.makedirs('data_dir')
