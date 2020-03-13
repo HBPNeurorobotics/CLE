@@ -18,7 +18,7 @@ pipelines:
           - cd $BITBUCKET_CLONE_DIR
 
           # This plan depends on GazeboRosPackages being built
-          - pushd $HBP/GazeboRosPackages && rm -rf build && catkin_make && popd && cd $BITBUCKET_CLONE_DIR
+          - pushd $HBP/GazeboRosPackages && rm -rf build devel && catkin_make && popd && cd $BITBUCKET_CLONE_DIR
           
           # Checkout config.ini.sample from user-scripts
           - cp $HBP/user-scripts/config_files/CLE/config.ini.sample hbp_nrp_cle/hbp_nrp_cle/config.ini
