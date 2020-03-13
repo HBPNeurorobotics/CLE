@@ -109,6 +109,8 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
 
         self._rca_elapsed_time = 0.0
         self._bca_elapsed_time = 0.0
+        self._bca_step_time = 0.0
+
         self.__network_file = None
         self.__network_configuration = None
 
@@ -214,6 +216,7 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
         logger.debug("Run step: Brain simulation")
         start = time.time()
         self.bca.run_step(timestep * 1000.0)
+        self._bca_step_time = time.time() - start
         self.bcm.refresh_buffers(clk)
         self._bca_elapsed_time += time.time() - start
 
@@ -228,9 +231,6 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
 
         # transfer functions
         logger.debug("Run step: Transfer functions")
-
-        # self.tfm.run_robot_to_neuron(clk)
-        # self.tfm.run_neuron_to_robot(clk)
         self.tfm.run_tfs(clk)
 
         self.ema.run_step()
@@ -261,7 +261,7 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
             self.__start_future = Future()
             if self.start_cb is not None:
                 self.start_cb(self.__start_future)
-            self.__start_thread = threading.Thread(target=self.__loop)
+            self.__start_thread = threading.Thread(target=self.loop, name='CLE_THREAD')
             self.__start_thread.setDaemon(True)
             self.__start_future.set_running_or_notify_cancel()
             self.__start_thread.start()
@@ -270,7 +270,7 @@ class DeterministicClosedLoopEngine(IClosedLoopControl):
             logger.warning("CLE is already running")
             return False
 
-    def __loop(self):
+    def loop(self):
         """
         Starts the orchestrated simulations.
         This function does not return (starts an infinite loop).

@@ -31,6 +31,39 @@ __author__ = 'GeorgHinkel'
 # pylint: disable=W0613
 
 
+class Service(object):
+    """
+    Represents a reference to a robot service
+    """
+
+    def __init__(self, name, service_type):  # -> None:
+        """
+        Create a new robot type reference
+
+        :param name: the name of the service
+        :param service_type: the type of the service
+        """
+        self.__name = name
+        self.__type = service_type
+
+    @property
+    def name(self):  # -> str:
+        """
+        Gets the name of the service
+        """
+        return self.__name
+
+    @property
+    def service_type(self):  # -> type:
+        """
+        Gets the type of the service
+        """
+        return self.__type
+
+    def __repr__(self):  # pragma: no cover
+        return self.__name + " : " + self.__type.__name__
+
+
 class Topic(object):
     """
     Represents a reference to a robot topic
@@ -165,6 +198,48 @@ class IRobotSubscribedTopic(object):  # pragma: no cover
         raise NotImplementedError("This method was not implemented in the concrete implementation")
 
 
+class IRobotServiceProxy(object):  # pragma: no cover
+    """
+    Represents a communication object for a service proxy
+    """
+
+    def set_request_args(self, *args, **kwargs):
+        """
+        Set the request call arguments
+        """
+        raise NotImplementedError("This method was not implemented in the concrete implementation")
+
+    def update_value(self):
+        """
+        Call service and update response value
+        """
+        raise NotImplementedError("This method was not implemented in the concrete implementation")
+
+    @property
+    def value(self):  # -> object:
+        """
+        Gets the current value of the service response
+        """
+        raise NotImplementedError("This method was not implemented in the concrete implementation")
+
+    def reset(self, transfer_function_manager):
+        """
+        Resets the service proxy
+
+        :param transfer_function_manager: The transfer function manager the service proxy belongs to
+        :return: The reset adapter
+        """
+        return self
+
+    def _unregister(self):
+        """
+        INTERNAL USE ONLY: this should never be directly invoked by a user.
+
+        Unregister the Service. After this call, nobody can use the service proxy anymore.
+        """
+        raise NotImplementedError("This method was not implemented in the concrete implementation")
+
+
 class IRobotCommunicationAdapter(object):  # pragma: no cover
     """
     Represents the communication adapter to the robot
@@ -173,6 +248,8 @@ class IRobotCommunicationAdapter(object):  # pragma: no cover
     def __init__(self):  # -> None:
         self.__published_topics = []
         self.__subscribed_topics = []
+
+        self.__service_proxies = []
 
     @property
     def published_topics(self):  # -> list:
@@ -191,6 +268,15 @@ class IRobotCommunicationAdapter(object):  # pragma: no cover
         :return: A hash table of the communication adapters subscribed topics
         """
         return self.__subscribed_topics
+
+    @property
+    def service_proxies(self):  # -> list:
+        """
+        Gets the service proxies for the robot communication adapter
+
+        :return: A hash table of the communication adapters service responses
+        """
+        return self.__service_proxies
 
     def register_subscribe_topic(self, topic, **kwargs):  # -> IRobotSubscribedTopic:
         """
@@ -237,6 +323,29 @@ class IRobotCommunicationAdapter(object):  # pragma: no cover
         if topic in self.__published_topics:
             self.__published_topics.remove(topic)
 
+    def register_service_proxy(self, service, **kwargs):  # -> IRobotServiceProxy:
+        """
+        Requests a proxy object for the given service
+
+        :param service: The service to which a proxy should be established
+        :param kwargs: Additional configuration parameters
+        :return: A responder object that holds the current data
+        """
+
+        service_proxy = self.create_service_proxy(service, **kwargs)
+        self.__service_proxies.append(service_proxy)
+        return service_proxy
+
+    def unregister_service_proxies(self, service_proxy):
+        """
+        Unregisters and removes the given service proxy object.
+
+        :param service_proxy The IRobotServiceProxy to unregister.
+        """
+        service_proxy._unregister()  # pylint: disable=protected-access
+        if service_proxy in self.__service_proxies:
+            self.__service_proxies.remove(service_proxy)
+
     def create_topic_subscriber(self, topic, **config):  # -> IRobotSubscribedTopic:
         """
         Creates the subscription object for the given topic
@@ -254,6 +363,16 @@ class IRobotCommunicationAdapter(object):  # pragma: no cover
         :param topic: The topic
         :param config: Additional configuration for the publisher
         :return: A publisher object
+        """
+        raise NotImplementedError("This method was not implemented in the concrete implementation")
+
+    def create_service_proxy(self, service, **config):  # -> IRobotServiceProxy:
+        """
+        Creates a service proxy object for the given service
+
+        :param service: The Service
+        :param config: Additional configuration for the service proxy
+        :return: A service proxy object
         """
         raise NotImplementedError("This method was not implemented in the concrete implementation")
 
